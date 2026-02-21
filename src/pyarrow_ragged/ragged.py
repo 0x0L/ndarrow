@@ -114,18 +114,3 @@ class RaggedTensorType(pa.ExtensionType):
         # type system does not preserve all numpy dtype distinctions (e.g. "<U1").
         meta = json.loads(serialized.decode())
         return cls(tuple(meta["inner_shape"]), np.dtype(meta["numpy_dtype"]))
-
-    @classmethod
-    def register(cls) -> None:
-        """Register this extension type with the Arrow type registry.
-
-        PyArrow requires a concrete instance to register, but only uses it
-        to map the extension name to the class. The instance's field values
-        (inner_shape, numpy_dtype) are irrelevant — every actual type is
-        reconstructed via ``__arrow_ext_deserialize__`` at read time.
-        """
-        try:
-            pa.unregister_extension_type(cls._EXTENSION_NAME)
-        except pa.ArrowKeyError:
-            pass
-        pa.register_extension_type(cls())
