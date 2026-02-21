@@ -133,6 +133,9 @@ class RaggedTensorType(pa.ExtensionType):
     def numpy_dtype(self) -> np.dtype:
         return self._numpy_dtype
 
+    def __repr__(self) -> str:
+        return f"RaggedTensorType(inner_shape={self._inner_shape}, dtype={self._numpy_dtype})"
+
     def equals(self, other: object) -> bool:
         """Return True if *other* is the same type with the same parameters.
 
