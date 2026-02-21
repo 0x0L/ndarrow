@@ -1,4 +1,5 @@
 import json
+from collections.abc import Sequence
 
 import numpy as np
 import pyarrow as pa
@@ -12,7 +13,7 @@ class RaggedTensorArray(pa.ExtensionArray):
     """
 
     @classmethod
-    def from_numpy(cls, tensors: list[np.ndarray]) -> "RaggedTensorArray":
+    def from_numpy(cls, tensors: Sequence[np.ndarray]) -> "RaggedTensorArray":
         """Create a `RaggedTensorArray` from a sequence of numpy arrays.
 
         Parameters
@@ -26,19 +27,34 @@ class RaggedTensorArray(pa.ExtensionArray):
         RaggedTensorArray
             An ExtensionArray wrapping the provided tensors.
 
+        Raises
+        ------
+        ValueError
+            If ``tensors`` is empty or arrays have mismatched trailing shapes.
+
         Notes
         -----
         A new buffer is always allocated by the concatenation step.
-        Non C-contiguous inputs incur an additional copy to make them C-contiguous
-        before concatenation.
+        Non C-contiguous inputs incur an additional copy to make them
+        C-contiguous before concatenation.
         """
+        if len(tensors) == 0:
+            raise ValueError("tensors must not be empty")
+
+        inner_shape = tensors[0].shape[1:]
+        for i, t in enumerate(tensors[1:], 1):
+            if t.shape[1:] != inner_shape:
+                raise ValueError(
+                    f"All tensors must share the same trailing shape (inner_shape). "
+                    f"Expected {inner_shape!r} (inferred from index 0) "
+                    f"but got {t.shape[1:]!r} at index {i}."
+                )
 
         c_tensor = np.concatenate([np.ascontiguousarray(t) for t in tensors])
-        inner_shape = c_tensor.shape[1:]
         flat = c_tensor.ravel()
+
         offsets = np.zeros(len(tensors) + 1, dtype=np.int64)
-        for i, t in enumerate(tensors):
-            offsets[i + 1] = offsets[i] + t.size
+        offsets[1:] = np.cumsum([t.size for t in tensors])
 
         ext_type = RaggedTensorType(inner_shape, flat.dtype)
         storage = pa.LargeListArray.from_arrays(pa.array(offsets), pa.array(flat))
@@ -59,7 +75,6 @@ class RaggedTensorArray(pa.ExtensionArray):
         possible; no per-element copy is performed beyond dtype casting
         when needed.
         """
-
         inner_shape = self.type.inner_shape
         numpy_dtype = self.type.numpy_dtype
         inner_size = int(np.prod(inner_shape)) if inner_shape else 1
@@ -88,7 +103,7 @@ class RaggedTensorType(pa.ExtensionType):
 
     def __init__(
         self,
-        inner_shape: tuple = (),
+        inner_shape: tuple[int, ...] = (),
         numpy_dtype: np.dtype = np.dtype("float32"),
     ):
         """
@@ -111,18 +126,33 @@ class RaggedTensorType(pa.ExtensionType):
         )
 
     @property
-    def inner_shape(self) -> tuple:
+    def inner_shape(self) -> tuple[int, ...]:
         return self._inner_shape
 
     @property
     def numpy_dtype(self) -> np.dtype:
         return self._numpy_dtype
 
+    def equals(self, other: object) -> bool:
+        """Return True if *other* is the same type with the same parameters.
+
+        Use this instead of ``==`` for semantic comparison. PyArrow's
+        ``pa.ExtensionType`` compares using only the underlying storage type
+        (a C-level slot), so two ``RaggedTensorType`` instances with different
+        ``inner_shape`` but the same element dtype would incorrectly compare
+        as equal with ``==``.
+        """
+        return (
+            isinstance(other, RaggedTensorType)
+            and self._inner_shape == other._inner_shape
+            and self._numpy_dtype == other._numpy_dtype
+        )
+
     # ------------------------------------------------------------------
     # PyArrow extension-type protocol
     # ------------------------------------------------------------------
 
-    def __arrow_ext_class__(self):
+    def __arrow_ext_class__(self) -> type[RaggedTensorArray]:
         return RaggedTensorArray
 
     def __arrow_ext_serialize__(self) -> bytes:
@@ -133,7 +163,9 @@ class RaggedTensorType(pa.ExtensionType):
         return json.dumps(meta).encode()
 
     @classmethod
-    def __arrow_ext_deserialize__(cls, storage_type, serialized: bytes):
+    def __arrow_ext_deserialize__(
+        cls, storage_type, serialized: bytes
+    ) -> "RaggedTensorType":
         # numpy_dtype is stored in the serialized bytes because the Arrow
         # type system does not preserve all numpy dtype distinctions (e.g. "<U1").
         meta = json.loads(serialized.decode())

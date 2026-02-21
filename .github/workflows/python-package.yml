@@ -29,5 +29,14 @@ jobs:
     - name: Install the project
       run: uv sync --locked --all-extras --dev
     
+    - name: Check format with ruff
+      run: uv run ruff format --check --diff
+
+    - name: Lint with ruff
+      run: uv run ruff check
+
+    - name: Lint with ty
+      run: uv run ty check
+
     - name: Run tests
       run: uv run pytest tests

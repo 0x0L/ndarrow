@@ -57,6 +57,20 @@ class TestRaggedTensorType:
     def test_extension_name(self):
         assert RaggedTensorType._EXTENSION_NAME == "ndarrow.ragged_tensor"
 
+    def test_equals_same(self):
+        assert RaggedTensorType((4, 5)).equals(RaggedTensorType((4, 5)))
+
+    def test_equals_different_shape(self):
+        assert not RaggedTensorType((4, 5)).equals(RaggedTensorType((4, 6)))
+
+    def test_equals_different_dtype(self):
+        assert not RaggedTensorType((4, 5), np.dtype("float32")).equals(
+            RaggedTensorType((4, 5), np.dtype("float64"))
+        )
+
+    def test_equals_wrong_type(self):
+        assert not RaggedTensorType((4, 5)).equals("not a type")
+
 
 # ---------------------------------------------------------------------------
 # RaggedTensorArray.from_numpy
@@ -77,7 +91,7 @@ class TestFromNumpy:
         assert arr.type.inner_shape == ()
 
     def test_mismatched_inner_shape_raises(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="inner_shape"):
             RaggedTensorArray.from_numpy(
                 [
                     np.ones((3, 4), dtype=np.float32),
@@ -144,6 +158,13 @@ class TestToNumpy:
     def test_length(self, tensors_3d):
         arr = RaggedTensorArray.from_numpy(tensors_3d)
         assert len(arr.to_numpy()) == len(tensors_3d)
+
+    def test_zero_copy_when_dtype_matches(self, tensors_3d):
+        arr = RaggedTensorArray.from_numpy(tensors_3d)
+        result = arr.to_numpy()
+        flat = arr.storage.values.to_numpy(zero_copy_only=False)
+        # Each slice is a view into the reshaped flat buffer.
+        assert all(np.shares_memory(r, flat) for r in result)
 
 
 # ---------------------------------------------------------------------------

@@ -1,10 +1,11 @@
 import json
+from collections.abc import Sequence
 
 import numpy as np
 import pyarrow as pa
 
 
-class FixedShapeTensorArray(pa.ExtensionArray):
+class TensorArray(pa.ExtensionArray):
     """Arrow ExtensionArray storing fixed-shape tensors.
 
     Every element has the same ``shape``. The underlying storage is a
@@ -13,21 +14,19 @@ class FixedShapeTensorArray(pa.ExtensionArray):
     """
 
     @classmethod
-    def from_numpy(
-        cls, tensors: np.ndarray | list[np.ndarray]
-    ) -> "FixedShapeTensorArray":
-        """Create a ``FixedShapeTensorArray`` from a NumPy array or a list of arrays.
+    def from_numpy(cls, tensors: np.ndarray | Sequence[np.ndarray]) -> "TensorArray":
+        """Create a ``TensorArray`` from a NumPy array or a list of arrays.
 
         Parameters
         ----------
         tensors
-            Either a single array of shape ``(N, *shape)`` or a list of arrays
-            all sharing the same shape. Non C-contiguous inputs are made
+            Either a single array of shape ``(N, *shape)`` or a sequence of
+            arrays all sharing the same shape. Non C-contiguous inputs are made
             contiguous before stacking.
 
         Returns
         -------
-        FixedShapeTensorArray
+        TensorArray
             An ExtensionArray wrapping the provided tensors.
         """
         if isinstance(tensors, np.ndarray):
@@ -38,7 +37,7 @@ class FixedShapeTensorArray(pa.ExtensionArray):
         shape = arr.shape[1:]
         flat_size = int(np.prod(shape)) if shape else 1
 
-        ext_type = FixedShapeTensorType(shape, arr.dtype)
+        ext_type = TensorType(shape, arr.dtype)
         storage = pa.FixedSizeListArray.from_arrays(pa.array(arr.ravel()), flat_size)
         return pa.ExtensionArray.from_storage(ext_type, storage)
 
@@ -58,7 +57,7 @@ class FixedShapeTensorArray(pa.ExtensionArray):
         return flat.astype(numpy_dtype, copy=False).reshape(len(self), *shape)
 
 
-class FixedShapeTensorType(pa.ExtensionType):
+class TensorType(pa.ExtensionType):
     """Arrow ExtensionType for fixed-shape tensors.
 
     The element ``shape`` and originating numpy dtype are stored in the
@@ -69,11 +68,11 @@ class FixedShapeTensorType(pa.ExtensionType):
     automatically; no explicit registration is required.
     """
 
-    _EXTENSION_NAME = "ndarrow.fixed_shape_tensor"
+    _EXTENSION_NAME = "ndarrow.tensor"
 
     def __init__(
         self,
-        shape: tuple = (),
+        shape: tuple[int, ...] = (),
         numpy_dtype: np.dtype = np.dtype("float32"),
     ):
         """
@@ -96,19 +95,34 @@ class FixedShapeTensorType(pa.ExtensionType):
         )
 
     @property
-    def shape(self) -> tuple:
+    def shape(self) -> tuple[int, ...]:
         return self._shape
 
     @property
     def numpy_dtype(self) -> np.dtype:
         return self._numpy_dtype
 
+    def equals(self, other: object) -> bool:
+        """Return True if *other* is the same type with the same parameters.
+
+        Use this instead of ``==`` for semantic comparison. PyArrow's
+        ``pa.ExtensionType`` compares using only the underlying storage type
+        (a C-level slot), so two ``TensorType`` instances with different
+        ``shape`` but the same element dtype would incorrectly compare as
+        equal with ``==``.
+        """
+        return (
+            isinstance(other, TensorType)
+            and self._shape == other._shape
+            and self._numpy_dtype == other._numpy_dtype
+        )
+
     # ------------------------------------------------------------------
     # PyArrow extension-type protocol
     # ------------------------------------------------------------------
 
-    def __arrow_ext_class__(self):
-        return FixedShapeTensorArray
+    def __arrow_ext_class__(self) -> type[TensorArray]:
+        return TensorArray
 
     def __arrow_ext_serialize__(self) -> bytes:
         meta = {
@@ -118,6 +132,6 @@ class FixedShapeTensorType(pa.ExtensionType):
         return json.dumps(meta).encode()
 
     @classmethod
-    def __arrow_ext_deserialize__(cls, storage_type, serialized: bytes):
+    def __arrow_ext_deserialize__(cls, storage_type, serialized: bytes) -> "TensorType":
         meta = json.loads(serialized.decode())
         return cls(tuple(meta["shape"]), np.dtype(meta["numpy_dtype"]))
