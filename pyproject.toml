@@ -1,26 +1,33 @@
-[project]
-name = "ndarrow"
-version = "0.1.0"
-description = "PyArrow extension types for storing fixed-shape and ragged tensors"
-readme = "README.md"
-authors = [
-    { name = "nullptr", email = "3621629+0x0L@users.noreply.github.com" }
-]
-license = "MIT"
-requires-python = ">=3.11"
-dependencies = [
-    "numpy>=1.25",
-    "pyarrow>=14",
-]
-
 [build-system]
 requires = ["uv_build>=0.10.4"]
 build-backend = "uv_build"
 
-[dependency-groups]
-dev = [
-    "pre-commit>=4.2.0",
-    "pytest>=9.0.2",
-    "ruff>=0.15.2",
-    "ty>=0.0.18",
+[project]
+name = "ndarrow"
+version = "0.1.0"
+dependencies = ["numpy>=1.25", "pyarrow>=14"]
+requires-python = ">=3.11"
+authors = [
+  { name = "nullptr", email = "3621629+0x0L@users.noreply.github.com" },
 ]
+description = "PyArrow extension types for storing fixed-shape and ragged tensors"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["arrow", "numpy", "tensors"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/0x0L/ndarrow"
+Repository = "https://github.com/0x0L/ndarrow.git"
+
+[dependency-groups]
+dev = ["pre-commit>=4.2.0", "pytest>=9.0.2", "ruff>=0.15.2", "ty>=0.0.18"]
