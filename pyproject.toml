@@ -1,0 +1,24 @@
+[project]
+name = "pyarrow-ragged"
+version = "0.1.0"
+description = "PyArrow extension type for efficiently storing ragged tensors with variable leading dimensions"
+readme = "README.md"
+authors = [
+    { name = "nullptr", email = "3621629+0x0L@users.noreply.github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pyarrow",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.2",
+    "ty>=0.0.18",
+]
