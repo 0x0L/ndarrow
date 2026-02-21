@@ -12,7 +12,7 @@ class RaggedTensorArray(pa.ExtensionArray):
     """
 
     @classmethod
-    def from_numpy(cls, tensors: list[np.ndarray]) -> RaggedTensorArray:
+    def from_numpy(cls, tensors: list[np.ndarray]) -> "RaggedTensorArray":
         """Create a `RaggedTensorArray` from a sequence of numpy arrays.
 
         Parameters
