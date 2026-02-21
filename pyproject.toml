@@ -6,6 +6,7 @@ readme = "README.md"
 authors = [
     { name = "nullptr", email = "3621629+0x0L@users.noreply.github.com" }
 ]
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.25",
