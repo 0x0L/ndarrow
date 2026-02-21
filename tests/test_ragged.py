@@ -3,7 +3,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from pyarrow_ragged import RaggedTensorArray, RaggedTensorType
+from ndarrow import RaggedTensorArray, RaggedTensorType
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -55,7 +55,7 @@ class TestRaggedTensorType:
         assert t2.numpy_dtype == np.dtype("float64")
 
     def test_extension_name(self):
-        assert RaggedTensorType._EXTENSION_NAME == "pyarrow_ragged.ragged_tensor"
+        assert RaggedTensorType._EXTENSION_NAME == "ndarrow.ragged_tensor"
 
 
 # ---------------------------------------------------------------------------

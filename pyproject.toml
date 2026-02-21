@@ -1,7 +1,7 @@
 [project]
-name = "pyarrow-ragged"
+name = "ndarrow"
 version = "0.1.0"
-description = "PyArrow extension type for efficiently storing ragged tensors with variable leading dimensions"
+description = "PyArrow extension types for storing fixed-shape and ragged tensors"
 readme = "README.md"
 authors = [
     { name = "nullptr", email = "3621629+0x0L@users.noreply.github.com" }
@@ -11,10 +11,6 @@ dependencies = [
     "numpy>=1.25",
     "pyarrow>=14",
 ]
-
-[project.urls]
-Repository = "https://github.com/0x0L/pyarrow-ragged"
-Issues = "https://github.com/0x0L/pyarrow-ragged/issues"
 
 [build-system]
 requires = ["uv_build>=0.10.4,<0.11.0"]

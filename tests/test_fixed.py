@@ -3,7 +3,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from pyarrow_ragged import FixedShapeTensorArray, FixedShapeTensorType
+from ndarrow import FixedShapeTensorArray, FixedShapeTensorType
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -47,9 +47,7 @@ class TestFixedShapeTensorType:
         assert t2.numpy_dtype == np.dtype("float64")
 
     def test_extension_name(self):
-        assert (
-            FixedShapeTensorType._EXTENSION_NAME == "pyarrow_ragged.fixed_shape_tensor"
-        )
+        assert FixedShapeTensorType._EXTENSION_NAME == "ndarrow.fixed_shape_tensor"
 
 
 # ---------------------------------------------------------------------------

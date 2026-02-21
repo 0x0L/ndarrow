@@ -1,10 +1,10 @@
-# pyarrow-ragged
+# ndarrow
 
 PyArrow extension types for efficiently storing tensors with variable or fixed shapes.
 
 ## Overview
 
-`pyarrow-ragged` provides two complementary PyArrow-native storage formats for tensor data:
+`ndarrow` provides two complementary PyArrow-native storage formats for tensor data:
 
 - **`FixedShapeTensorArray`** — every element has exactly the same `shape`; the entire batch is backed by a single contiguous buffer.
 - **`RaggedTensorArray`** — each element is a tensor whose leading dimension may vary, with a fixed `inner_shape` shared by all elements.
@@ -14,7 +14,7 @@ Both types store the element shape and NumPy dtype in the Arrow extension metada
 ## Installation
 
 ```bash
-pip install pyarrow-ragged
+pip install ndarrow
 ```
 
 ## Usage
@@ -25,7 +25,7 @@ pip install pyarrow-ragged
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
-from pyarrow_ragged import RaggedTensorArray
+from ndarrow import RaggedTensorArray
 
 # Varying first dimension, fixed inner shape (4, 5)
 tensors = [
@@ -39,7 +39,7 @@ ragged = RaggedTensorArray.from_numpy(tensors)
 
 table = pa.table({"embeddings": ragged})
 print(table.schema)
-# embeddings: extension<pyarrow_ragged.ragged_tensor<RaggedTensorType>>
+# embeddings: extension<ndarrow.ragged_tensor<RaggedTensorType>>
 
 # Round-trip through Parquet — type metadata is preserved
 pq.write_table(table, "data.parquet")
@@ -55,7 +55,7 @@ recovered = table2.column("embeddings").chunk(0).to_numpy()
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
-from pyarrow_ragged import FixedShapeTensorArray
+from ndarrow import FixedShapeTensorArray
 
 # All elements share the same shape — pass a stacked array directly
 batch = np.random.randn(100, 4, 5).astype(np.float32)
@@ -64,7 +64,7 @@ fixed = FixedShapeTensorArray.from_numpy(batch)
 
 table = pa.table({"embeddings": fixed})
 print(table.schema)
-# embeddings: extension<pyarrow_ragged.fixed_shape_tensor<FixedShapeTensorType>>
+# embeddings: extension<ndarrow.fixed_shape_tensor<FixedShapeTensorType>>
 
 # Round-trip through Parquet — type metadata is preserved
 pq.write_table(table, "data.parquet")

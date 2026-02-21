@@ -65,11 +65,11 @@ class FixedShapeTensorType(pa.ExtensionType):
     serialized metadata so the type round-trips correctly through IPC and
     Parquet without any extra configuration.
 
-    Importing ``pyarrow_ragged`` registers this type with PyArrow
+    Importing ``ndarrow`` registers this type with PyArrow
     automatically; no explicit registration is required.
     """
 
-    _EXTENSION_NAME = "pyarrow_ragged.fixed_shape_tensor"
+    _EXTENSION_NAME = "ndarrow.fixed_shape_tensor"
 
     def __init__(
         self,

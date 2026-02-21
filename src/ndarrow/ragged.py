@@ -84,7 +84,7 @@ class RaggedTensorType(pa.ExtensionType):
     can be reconstructed exactly when deserialized.
     """
 
-    _EXTENSION_NAME = "pyarrow_ragged.ragged_tensor"
+    _EXTENSION_NAME = "ndarrow.ragged_tensor"
 
     def __init__(
         self,
