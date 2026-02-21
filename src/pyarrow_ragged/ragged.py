@@ -8,7 +8,7 @@ class RaggedTensorArray(pa.ExtensionArray):
     """Arrow ExtensionArray storing ragged tensors.
 
     Each element is a 0..N row tensor with a fixed ``inner_shape``. The
-    underlying storage is a ``pa.ListArray`` over a single flat buffer.
+    underlying storage is a ``pa.LargeListArray`` over a single flat buffer.
     """
 
     @classmethod

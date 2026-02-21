@@ -185,8 +185,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "numpy" },
-    { name = "pyarrow" },
+    { name = "numpy", specifier = ">=1.25" },
+    { name = "pyarrow", specifier = ">=14" },
 ]
 
 [package.metadata.requires-dev]
