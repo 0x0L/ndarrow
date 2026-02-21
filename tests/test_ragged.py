@@ -1,6 +1,3 @@
-import os
-import tempfile
-
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -177,30 +174,22 @@ class TestTableIntegration:
 
 
 class TestParquet:
-    def test_type_survives_parquet(self, tensors_3d):
+    def test_type_survives_parquet(self, tensors_3d, tmp_path):
         arr = RaggedTensorArray.from_numpy(tensors_3d)
         tbl = pa.table({"tensor": arr})
-        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
-            path = f.name
-        try:
-            pq.write_table(tbl, path)
-            tbl2 = pq.read_table(path)
-        finally:
-            os.unlink(path)
+        path = tmp_path / "data.parquet"
+        pq.write_table(tbl, path)
+        tbl2 = pq.read_table(path)
         field = tbl2.schema.field("tensor")
         assert isinstance(field.type, RaggedTensorType)
         assert field.type.inner_shape == (4, 5)
         assert field.type.numpy_dtype == np.dtype("float32")
 
-    def test_values_survive_parquet(self, tensors_3d):
+    def test_values_survive_parquet(self, tensors_3d, tmp_path):
         arr = RaggedTensorArray.from_numpy(tensors_3d)
         tbl = pa.table({"tensor": arr})
-        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
-            path = f.name
-        try:
-            pq.write_table(tbl, path)
-            recovered = pq.read_table(path).column("tensor").chunk(0).to_numpy()
-        finally:
-            os.unlink(path)
+        path = tmp_path / "data.parquet"
+        pq.write_table(tbl, path)
+        recovered = pq.read_table(path).column("tensor").chunk(0).to_numpy()
         for orig, rec in zip(tensors_3d, recovered):
             assert np.allclose(orig, rec)

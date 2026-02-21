@@ -18,9 +18,8 @@ class RaggedTensorArray(pa.ExtensionArray):
         Parameters
         ----------
         tensors
-            Sequence of numpy arrays. All arrays must share the same
-            trailing shape (``inner_shape``) and may differ in the leading
-            dimension.
+            All arrays must share the same trailing shape (``inner_shape``)
+            and may differ only in the leading dimension.
 
         Returns
         -------
@@ -29,8 +28,9 @@ class RaggedTensorArray(pa.ExtensionArray):
 
         Notes
         -----
-        The function does not copy C-contiguous arrays; non-contiguous
-        inputs will be made contiguous as needed.
+        A new buffer is always allocated by the concatenation step.
+        Non C-contiguous inputs incur an additional copy to make them C-contiguous
+        before concatenation.
         """
 
         c_tensor = np.concatenate([np.ascontiguousarray(t) for t in tensors])
@@ -47,9 +47,17 @@ class RaggedTensorArray(pa.ExtensionArray):
     def to_numpy(self) -> list[np.ndarray]:
         """Return the contents as a list of numpy arrays.
 
+        Returns
+        -------
+        list[np.ndarray]
+            One array per element, each with shape ``(n, *inner_shape)`` where
+            ``n`` is the leading dimension of that element.
+
+        Notes
+        -----
         The returned arrays are views into a single reshaped buffer where
-        possible (no per-element copy is performed beyond dtype casting
-        when needed).
+        possible; no per-element copy is performed beyond dtype casting
+        when needed.
         """
 
         inner_shape = self.type.inner_shape
@@ -80,9 +88,21 @@ class RaggedTensorType(pa.ExtensionType):
 
     def __init__(
         self,
-        inner_shape: tuple = tuple(),
+        inner_shape: tuple = (),
         numpy_dtype: np.dtype = np.dtype("float32"),
     ):
+        """
+        Parameters
+        ----------
+        inner_shape
+            Fixed trailing dimensions shared by every element (e.g. ``(4, 5)``
+            for a batch of 4×5 matrices). Use ``()`` for 1-D variable-length
+            arrays.
+        numpy_dtype
+            NumPy dtype of the stored values. Preserved through
+            serialization because the Arrow type system does not distinguish
+            all NumPy dtype variants (e.g. ``"<U1"`` vs ``"object"``).
+        """
         self._inner_shape = tuple(inner_shape)
         self._numpy_dtype = np.dtype(numpy_dtype)
         super().__init__(
@@ -97,6 +117,10 @@ class RaggedTensorType(pa.ExtensionType):
     @property
     def numpy_dtype(self) -> np.dtype:
         return self._numpy_dtype
+
+    # ------------------------------------------------------------------
+    # PyArrow extension-type protocol
+    # ------------------------------------------------------------------
 
     def __arrow_ext_class__(self):
         return RaggedTensorArray
