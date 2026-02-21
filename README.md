@@ -19,63 +19,36 @@ pip install ndarrow
 
 ## Usage
 
-### Fixed-shape tensors
-
 ```python
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
-from ndarrow import TensorArray
+from ndarrow import TensorArray, RaggedTensorArray
 
-# All elements share the same shape — pass a stacked array directly
-batch = np.random.randn(100, 4, 5).astype(np.float32)
+# Fixed-shape: one 64-dim embedding per sentence
+sentence_embeddings = TensorArray.from_numpy(np.random.randn(3, 64))
+# also accepts a list of arrays:
+# sentence_embeddings = TensorArray.from_numpy([
+#     np.random.randn(64)
+#     for _ in range(3)
+# ])
 
-arr = TensorArray.from_numpy(batch)
+# Ragged: each sentence has a variable number of tokens, each with a 64-dim embedding
+token_embeddings = RaggedTensorArray.from_numpy([
+    np.random.randn(6, 64),
+    np.random.randn(9, 64),
+    np.random.randn(3, 64),
+])
 
-table = pa.table({"embeddings": arr})
+table = pa.table({"sentence_embeddings": sentence_embeddings, "token_embeddings": token_embeddings})
 print(table.schema)
-# embeddings: extension<ndarrow.tensor<TensorType>>
+# sentence_embeddings: extension<ndarrow.tensor<TensorType>>
+# token_embeddings:    extension<ndarrow.ragged_tensor<RaggedTensorType>>
 
 # Round-trip through Parquet — type metadata is preserved
 pq.write_table(table, "data.parquet")
 table2 = pq.read_table("data.parquet")
 
-# Convert back to a single stacked NumPy array of shape (100, 4, 5)
-recovered = table2.column("embeddings").chunk(0).to_numpy()
-```
-
-A list of same-shape arrays is also accepted:
-
-```python
-arr = TensorArray.from_numpy([np.ones((4, 5)) for _ in range(100)])
-```
-
-### Ragged tensors
-
-```python
-import numpy as np
-import pyarrow as pa
-import pyarrow.parquet as pq
-from ndarrow import RaggedTensorArray
-
-# Varying first dimension, fixed inner shape (4, 5)
-tensors = [
-    np.random.randn(3, 4, 5).astype(np.float32),
-    np.random.randn(7, 4, 5).astype(np.float32),
-    np.random.randn(2, 4, 5).astype(np.float32),
-]
-
-# inner_shape and dtype are inferred automatically
-arr = RaggedTensorArray.from_numpy(tensors)
-
-table = pa.table({"embeddings": arr})
-print(table.schema)
-# embeddings: extension<ndarrow.ragged_tensor<RaggedTensorType>>
-
-# Round-trip through Parquet — type metadata is preserved
-pq.write_table(table, "data.parquet")
-table2 = pq.read_table("data.parquet")
-
-# Convert back to a list of NumPy arrays
-recovered = table2.column("embeddings").chunk(0).to_numpy()
+embeddings_np = table2.column("sentence_embeddings").chunk(0).to_numpy()  # shape (3, 64)
+tokens_list   = table2.column("token_embeddings").chunk(0).to_numpy()     # list of 3 arrays of shape (?, 64)
 ```
